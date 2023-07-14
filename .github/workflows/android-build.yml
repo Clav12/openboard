@@ -31,6 +31,6 @@ jobs:
         uses: actions/upload-artifact@v2.2.0
         with:
           name: APK
-          path: app/build/app-debug.apk
+          path: frontend/app/build/outputs/apk/debug/app.apk
 
     

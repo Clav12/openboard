@@ -50,13 +50,13 @@ final class EmojiLayoutParams {
                 defaultKeyboardWidth, defaultKeyboardWidth));
         mEmojiCategoryPageIdViewHeight =
                 (int) (res.getDimension(R.dimen.config_emoji_category_page_id_height));
-        final int baseheight = mKeyboardHeightScale - mBottomPadding - mTopPadding
+        final int baseheight = defaultKeyboardHeight - mKeyboardHeightScale - mBottomPadding - mTopPadding
                 + mKeyVerticalGap;
         final int mNumberRowEnabled = (int) (1.0f / res.getFraction(
                  R.fraction.config_emoji_keyboard_row_height, 1, 1)) + 1;
          mEmojiActionBarHeight = baseheight / mNumberRowEnabled
                 - (mKeyVerticalGap - mBottomPadding) / 2;
-        mEmojiListHeight = mKeyboardHeightScale - mEmojiActionBarHeight
+        mEmojiListHeight = defaultKeyboardHeight - mKeyboardHeightScale - mEmojiActionBarHeight
                 - mEmojiCategoryPageIdViewHeight;
         mEmojiListBottomMargin = 0;
         mEmojiKeyboardHeight = mEmojiListHeight - mEmojiListBottomMargin - 1;

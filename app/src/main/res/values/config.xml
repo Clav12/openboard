@@ -90,7 +90,7 @@
     <dimen name="config_gesture_floating_preview_round_radius">2dp</dimen>
 
     <!-- Emoji keyboard -->
-    <fraction name="config_emoji_keyboard_key_width">12.5%p</fraction>
+    <fraction name="config_emoji_keyboard_key_width">16.666%p</fraction>
     <fraction name="config_emoji_keyboard_row_height">30%p</fraction>
     <fraction name="config_emoji_keyboard_key_letter_size">78%p</fraction>
     <fraction name="config_emoji_keyboard_key_label_size">78%p</fraction>

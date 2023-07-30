@@ -40,26 +40,7 @@ final class EmojiLayoutParams {
     public EmojiLayoutParams(final Resources res) {
         final int defaultKeyboardHeight = ResourceUtils.getDefaultKeyboardHeight(res);
         final int defaultKeyboardWidth = ResourceUtils.getDefaultKeyboardWidth(res);
-        mKeyVerticalGap = (int) res.getFraction(R.fraction.config_key_vertical_gap_holo,
-                defaultKeyboardHeight, defaultKeyboardHeight);
-        mBottomPadding = (int) res.getFraction(R.fraction.config_keyboard_bottom_padding_holo,
-                defaultKeyboardHeight, defaultKeyboardHeight);
-        mTopPadding = (int) res.getFraction(R.fraction.config_keyboard_top_padding_holo,
-                defaultKeyboardHeight, defaultKeyboardHeight);
-        mKeyHorizontalGap = (int) (res.getFraction(R.fraction.config_key_horizontal_gap_holo,
-                defaultKeyboardWidth, defaultKeyboardWidth));
-        mEmojiCategoryPageIdViewHeight =
-                (int) (res.getDimension(R.dimen.config_emoji_category_page_id_height));
-        final int baseheight = defaultKeyboardHeight - mKeyboardHeightScale - mBottomPadding - mTopPadding
-                + mKeyVerticalGap;
-        final int mNumberRowEnabled = (int) (1.0f / res.getFraction(
-                 R.fraction.config_emoji_keyboard_row_height, 1, 1)) + 1;
-         mEmojiActionBarHeight = baseheight / mNumberRowEnabled
-                - (mKeyVerticalGap - mBottomPadding) / 2;
-        mEmojiListHeight = defaultKeyboardHeight - mKeyboardHeightScale - mEmojiActionBarHeight
-                - mEmojiCategoryPageIdViewHeight;
-        mEmojiListBottomMargin = 0;
-        mEmojiKeyboardHeight = mEmojiListHeight - mEmojiListBottomMargin - 1;
+        
     }
 
     public void setEmojiListProperties(final RecyclerView vp) {

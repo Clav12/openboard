@@ -36,7 +36,6 @@ final class EmojiLayoutParams {
     private final int mKeyHorizontalGap;
     private final int mBottomPadding;
     private final int mTopPadding;
-    private final int mKeyboardHeightScale;
 
     public EmojiLayoutParams(final Resources res) {
         final int defaultKeyboardHeight = ResourceUtils.getDefaultKeyboardHeight(res);

@@ -10,12 +10,12 @@ Changes:
 * Debug version can be installed along OpenBoard
 * Allow users to add and replace built-in dictionaries
   * modified / improved from https://github.com/openboard-team/openboard/pull/569 and https://github.com/openboard-team/openboard/pull/578
-  * some AOSP dictionaries are available [here](dictionaries/dict)
+  * some AOSP dictionaries are available [here](https://codeberg.org/Helium314/aosp-dictionaries)
     * experimental dictionaries with next-word suggestions created from sentence lists [are also available](dictionaries/experimental), but they may contain unwanted words, and may be missing other features
   * dictionary files starting with "main_" replace the built-in dictionary for the language, all other names work as add-on dictionaries
   * add [Arabic dictionary](https://github.com/remi0s/aosp-dictionary-tools/blob/master/dictsCreated/WikiAndOpenSubtitles/ar_wordlist.combined) for download, from https://github.com/openboard-team/openboard/pull/450
   * add [Hebrew dictionary](https://github.com/Hananel-Hazan/aosp-dictionary-tools/blob/master/hebrew-hspell.txt.combined.new) for download, from https://github.com/openboard-team/openboard/pull/300
-  * add [Galician dictionary](https://github.com/chavaone/openboard/blob/master/dictionaries/es_GL_wordlist.combined.g) for download, from https://github.com/openboard-team/openboard/pull/291
+  * add [Galician dictionary](https://github.com/chavaone/openboard/blob/master/dictionaries/es_GL_wordlist.combined.gz) for download, from https://github.com/openboard-team/openboard/pull/291
 * Fix suggestions after some characters, https://github.com/openboard-team/openboard/pull/694, https://github.com/openboard-team/openboard/issues/795
 * Fix suggestions sometimes not being shown, https://github.com/openboard-team/openboard/pull/709
 * Reduce amount of unwanted automatic space insertions, https://github.com/openboard-team/openboard/pull/576
@@ -32,6 +32,16 @@ Changes:
 * Allow using contacts for suggestions (enable in spell checker settings), https://github.com/openboard-team/openboard/issues/374
 * Re-arranged comma-long-press-menu, https://github.com/Helium314/openboard/pull/7
 * Make Bengali spell check work, https://github.com/Helium314/openboard/pull/11
+* Fix azerty layout in landscape mode on tablets, https://github.com/openboard-team/openboard/pull/791
+* Improve issues with emoji deletion (still happens with delete gesture), https://github.com/Helium314/openboard/issues/22
+* Add Unicode 15 emojis, https://github.com/openboard-team/openboard/issues/25
+* Improved experimental emoji dictionary for download
+* Better currency selection, https://github.com/Helium314/openboard/pull/21 / https://github.com/Helium314/openboard/commit/0d1106649f95ecbd7d8f6d950428547666059564
+* Reduce space between keys, https://github.com/Helium314/openboard/pull/8
+* Fix number row not split in split keyboard view, https://github.com/Helium314/openboard/pull/27
+* Fix white background of emoji tab selector on AMOLED theme for some Android versions, https://github.com/Helium314/openboard/pull/26
+* Fix issue with spell checker incorrectly flagging words before a period as wrong on newer Android versions, https://github.com/openboard-team/openboard/pull/679
+*
 
 Plan / to do:
 * ~upgrade dependencies~
@@ -50,15 +60,16 @@ Plan / to do:
 * ~theming, https://github.com/openboard-team/openboard/issues/124~
   * ~fix emoji view not themed properly~
   * ~fix ABC buttons in emoji and clipboard view have wrong text color~
+  * ~allow adjusting colors without requiring manual reload of keyboard~
+  * ~fix issues in _more suggestions_ view, https://github.com/Helium314/openboard/issues/9#issuecomment-1626932543~ (not 100% fixed, but should not be noticeable)
   * fix buttons on long-press action key not themed
-  * allow adjusting colors without requiring manual reload of keyboard
-  * fix issues in _more suggestions_ view, https://github.com/Helium314/openboard/issues/9#issuecomment-1626932543
+  * fix icons on long-press comma key not themed
 * ~delete suggestions, https://github.com/openboard-team/openboard/issues/106~
-  * make functionality more discoverable, e.g. add a button to the _more suggestions_ menu
+  * make functionality more discoverable, e.g. add a button to the _more suggestions_ menu, or replace long-press menu and show more suggestions by scrolling suggestion strip
 * ~gesture typing, https://github.com/openboard-team/openboard/issues/3~
   * ~license issues, require using an external library~
-* ~move/copy _use contacts_ setting from well hidden spell checker settings to _text correction_ settings~
-* add emojis to user history, to be used for next word suggestions
+* ~copy _use contacts_ setting from well hidden spell checker settings to _text correction_ settings~
+* add emojis to user history, to be used for next word
 
 -----
 

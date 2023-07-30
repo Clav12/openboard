@@ -18,14 +18,18 @@ package org.dslul.openboard.inputmethod.keyboard;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Build.VERSION_CODES;
 import android.util.Log;
 
+import androidx.core.content.ContextCompat;
+
 import org.dslul.openboard.inputmethod.latin.R;
+import org.dslul.openboard.inputmethod.latin.common.Colors;
+import org.dslul.openboard.inputmethod.latin.settings.Settings;
 import org.dslul.openboard.inputmethod.latin.utils.DeviceProtectedUtils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,7 +42,7 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
     public static final String THEME_VARIANT_DARK = "Dark";
     public static final String THEME_VARIANT_WHITE = "White";
     public static final String THEME_VARIANT_BLUE = "Blue";
-    public static final String THEME_VARIANT_USER = "User-defined";
+    public static final String THEME_VARIANT_CUSTOM = "User-defined";
     public static final String THEME_VARIANT_HOLO_USER = "User-defined (Holo)";
 
     public static final String[] THEME_FAMILIES = {THEME_FAMILY_MATERIAL, THEME_FAMILY_HOLO};
@@ -46,7 +50,9 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
 
     static {
         THEME_VARIANTS.put(THEME_FAMILY_MATERIAL,
-                new String[] {THEME_VARIANT_LIGHT, THEME_VARIANT_DARK, THEME_VARIANT_USER});
+                new String[] {THEME_VARIANT_LIGHT, THEME_VARIANT_DARK, THEME_VARIANT_CUSTOM});
+        THEME_VARIANTS.put(THEME_FAMILY_HOLO,
+                new String[] {THEME_VARIANT_WHITE, THEME_VARIANT_BLUE, THEME_VARIANT_HOLO_USER});
         THEME_VARIANTS.put(THEME_FAMILY_HOLO,
                 new String[] {THEME_VARIANT_WHITE, THEME_VARIANT_BLUE, THEME_VARIANT_HOLO_USER});
     }
@@ -60,7 +66,7 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
     // attributes' values in attrs.xml.
     public static final int THEME_ID_ICS = 0;
     public static final int THEME_ID_KLP = 2;
-    public static final int THEME_ID_KLP_USER = 13;
+    public static final int THEME_ID_KLP_CUSTOM = 13;
     public static final int THEME_ID_LXX_LIGHT = 3;
     public static final int THEME_ID_LXX_DARK_AMOLED = 4;
     public static final int THEME_ID_LXX_AUTO_AMOLED = 10;
@@ -69,8 +75,8 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
     public static final int THEME_ID_LXX_DARK = 7;
     public static final int THEME_ID_LXX_AUTO = 9;
     public static final int THEME_ID_LXX_AUTO_BORDER = 8;
-    public static final int THEME_ID_LXX_USER = 11;
-    public static final int THEME_ID_LXX_USER_BORDER = 12;
+    public static final int THEME_ID_LXX_CUSTOM = 11;
+    public static final int THEME_ID_LXX_CUSTOM_BORDER = 12;
     public static final int DEFAULT_THEME_ID = THEME_ID_LXX_DARK_BORDER;
 
     private static KeyboardTheme[] AVAILABLE_KEYBOARD_THEMES;
@@ -107,13 +113,13 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
         new KeyboardTheme(THEME_ID_LXX_AUTO_AMOLED, "LXXAutoAmoled", R.style.KeyboardTheme_LXX_Auto_Amoled,
                 // This has never been selected as default theme.
                 VERSION_CODES.LOLLIPOP),
-        new KeyboardTheme(THEME_ID_LXX_USER, "LXXUser", R.style.KeyboardTheme_LXX_Light,
+        new KeyboardTheme(THEME_ID_LXX_CUSTOM, "LXXCustom", R.style.KeyboardTheme_LXX_Base,
                 // This has never been selected as default theme.
                 VERSION_CODES.LOLLIPOP),
-        new KeyboardTheme(THEME_ID_LXX_USER_BORDER, "LXXUserBorder", R.style.KeyboardTheme_LXX_Light_Border,
+        new KeyboardTheme(THEME_ID_LXX_CUSTOM_BORDER, "LXXCustomBorder", R.style.KeyboardTheme_LXX_Base_Border,
                 // This has never been selected as default theme.
                 VERSION_CODES.LOLLIPOP),
-        new KeyboardTheme(THEME_ID_KLP_USER, "KLPUser", R.style.KeyboardTheme_KLP,
+        new KeyboardTheme(THEME_ID_KLP_CUSTOM, "KLPCustom", R.style.KeyboardTheme_KLP,
                 // This has never been selected as default theme.
                 VERSION_CODES.BASE),
     };
@@ -251,7 +257,7 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
     }
 
     public static String getThemeFamily(int themeId) {
-        if (themeId == THEME_ID_ICS || themeId == THEME_ID_KLP || themeId == THEME_ID_KLP_USER) return THEME_FAMILY_HOLO;
+        if (themeId == THEME_ID_ICS || themeId == THEME_ID_KLP || themeId == THEME_ID_KLP_CUSTOM) return THEME_FAMILY_HOLO;
         return THEME_FAMILY_MATERIAL;
     }
 
@@ -268,10 +274,10 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
                 return THEME_VARIANT_WHITE;
             case THEME_ID_ICS:
                 return THEME_VARIANT_BLUE;
-            case THEME_ID_LXX_USER:
-            case THEME_ID_LXX_USER_BORDER:
-                return THEME_VARIANT_USER;
-            case THEME_ID_KLP_USER:
+            case THEME_ID_LXX_CUSTOM:
+            case THEME_ID_LXX_CUSTOM_BORDER:
+                return THEME_VARIANT_CUSTOM;
+            case THEME_ID_KLP_CUSTOM:
                 return THEME_VARIANT_HOLO_USER;
             default:
                 return null;
@@ -283,7 +289,7 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
             case THEME_ID_LXX_DARK_BORDER:
             case THEME_ID_LXX_LIGHT_BORDER:
             case THEME_ID_LXX_AUTO_BORDER:
-            case THEME_ID_LXX_USER_BORDER:
+            case THEME_ID_LXX_CUSTOM_BORDER:
             case THEME_ID_ICS:
             case THEME_ID_KLP:
                 return true;
@@ -292,11 +298,11 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
         }
     }
 
-    public static boolean getIsUser(int themeId) {
+    public static boolean getIsCustom(int themeId) {
         switch (themeId) {
-            case THEME_ID_LXX_USER:
-            case THEME_ID_LXX_USER_BORDER:
-            case THEME_ID_KLP_USER:
+            case THEME_ID_LXX_CUSTOM:
+            case THEME_ID_LXX_CUSTOM_BORDER:
+            case THEME_ID_KLP_CUSTOM:
                 return true;
             default:
                 return false;
@@ -328,7 +334,7 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
             boolean keyBorders, boolean dayNight, boolean amoledMode) {
         if (THEME_FAMILY_HOLO.equals(family)) {
             if (THEME_VARIANT_BLUE.equals(variant)) return THEME_ID_ICS;
-            if (THEME_VARIANT_HOLO_USER.equals(variant)) return THEME_ID_KLP_USER;
+            if (THEME_VARIANT_HOLO_USER.equals(variant)) return THEME_ID_KLP_CUSTOM;
             return THEME_ID_KLP;
         }
         if (dayNight) {
@@ -341,11 +347,74 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
             if (amoledMode) return THEME_ID_LXX_DARK_AMOLED;
             return THEME_ID_LXX_DARK;
         }
-        if (THEME_VARIANT_USER.equals(variant)) {
-            if (keyBorders) return THEME_ID_LXX_USER_BORDER;
-            return  THEME_ID_LXX_USER;
+        if (THEME_VARIANT_CUSTOM.equals(variant)) {
+            if (keyBorders) return THEME_ID_LXX_CUSTOM_BORDER;
+            return THEME_ID_LXX_CUSTOM;
         }
         if (keyBorders) return THEME_ID_LXX_LIGHT_BORDER;
         return THEME_ID_LXX_LIGHT;
+    }
+
+    public static final String THEME_LIGHT = "light";
+    public static final String THEME_DARK = "dark";
+    public static final String THEME_DARKER = "darker";
+    public static final String THEME_BLACK = "black";
+    public static final String THEME_USER = "user";
+    public static final String[] CUSTOM_THEME_VARIANTS = new String[] { THEME_LIGHT, THEME_DARK, THEME_DARKER, THEME_BLACK, THEME_USER };
+
+    // todo (later): material you, system accent, ...
+    // todo: copies of original themes might need adjustments, though maybe it's only Colors that needs to be adjusted
+    public static Colors getCustomTheme(String theme, Context context, SharedPreferences prefs) {
+        switch (theme) {
+            case THEME_USER:
+                final int accent = prefs.getInt(Settings.PREF_THEME_USER_COLOR_ACCENT, Color.BLUE);
+                final int keyBgColor = prefs.getInt(Settings.PREF_THEME_USER_COLOR_KEYS, Color.LTGRAY);
+                final int keyTextColor = prefs.getInt(Settings.PREF_THEME_USER_COLOR_TEXT, Color.WHITE);
+                final int hintTextColor = prefs.getInt(Settings.PREF_THEME_USER_COLOR_HINT_TEXT, Color.WHITE);
+                final int background = prefs.getInt(Settings.PREF_THEME_USER_COLOR_BACKGROUND, Color.DKGRAY);
+                return new Colors(accent, background, keyBgColor, Colors.brightenOrDarken(keyBgColor, true), keyBgColor, keyTextColor, hintTextColor);
+            case THEME_DARK:
+                return new Colors(
+                        ContextCompat.getColor(context, R.color.gesture_trail_color_lxx_dark),
+                        // colors taken from the drawable
+                        Color.parseColor("#263238"),
+                        Color.parseColor("#364248"),
+                        Color.parseColor("#2d393f"),
+                        Color.parseColor("#364248"),
+                        ContextCompat.getColor(context, R.color.key_text_color_lxx_dark),
+                        ContextCompat.getColor(context, R.color.key_hint_letter_color_lxx_dark)
+                );
+            case THEME_DARKER:
+                return new Colors(
+                        ContextCompat.getColor(context, R.color.gesture_trail_color_lxx_dark),
+                        ContextCompat.getColor(context, R.color.keyboard_background_lxx_dark_border),
+                        ContextCompat.getColor(context, R.color.key_background_normal_lxx_dark_border),
+                        ContextCompat.getColor(context, R.color.key_background_functional_lxx_dark_border),
+                        ContextCompat.getColor(context, R.color.key_background_normal_lxx_dark_border),
+                        ContextCompat.getColor(context, R.color.key_text_color_lxx_dark),
+                        ContextCompat.getColor(context, R.color.key_hint_letter_color_lxx_dark)
+                );
+            case THEME_BLACK:
+                return new Colors(
+                        ContextCompat.getColor(context, R.color.gesture_trail_color_lxx_dark),
+                        ContextCompat.getColor(context, R.color.background_amoled_black),
+                        ContextCompat.getColor(context, R.color.background_amoled_dark),
+                        ContextCompat.getColor(context, R.color.background_amoled_dark),
+                        ContextCompat.getColor(context, R.color.background_amoled_dark),
+                        ContextCompat.getColor(context, R.color.key_text_color_lxx_dark),
+                        ContextCompat.getColor(context, R.color.key_hint_letter_color_lxx_dark)
+                );
+            case THEME_LIGHT:
+            default:
+                return new Colors(
+                        ContextCompat.getColor(context, R.color.gesture_trail_color_lxx_light),
+                        ContextCompat.getColor(context, R.color.keyboard_background_lxx_light_border),
+                        ContextCompat.getColor(context, R.color.key_background_normal_lxx_light_border),
+                        ContextCompat.getColor(context, R.color.key_background_functional_lxx_light_border),
+                        ContextCompat.getColor(context, R.color.key_background_normal_lxx_light_border),
+                        ContextCompat.getColor(context, R.color.key_text_color_lxx_light),
+                        ContextCompat.getColor(context, R.color.key_hint_letter_color_lxx_light)
+                );
+        }
     }
 }

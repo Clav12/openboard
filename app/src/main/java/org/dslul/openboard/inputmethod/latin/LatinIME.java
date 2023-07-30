@@ -25,7 +25,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.graphics.Color;
 import android.inputmethodservice.InputMethodService;
 import android.media.AudioManager;
 import android.os.Build;
@@ -65,6 +64,7 @@ import org.dslul.openboard.inputmethod.keyboard.KeyboardSwitcher;
 import org.dslul.openboard.inputmethod.keyboard.MainKeyboardView;
 import org.dslul.openboard.inputmethod.latin.Suggest.OnGetSuggestedWordsCallback;
 import org.dslul.openboard.inputmethod.latin.SuggestedWords.SuggestedWordInfo;
+import org.dslul.openboard.inputmethod.latin.common.Colors;
 import org.dslul.openboard.inputmethod.latin.common.Constants;
 import org.dslul.openboard.inputmethod.latin.common.CoordinateUtils;
 import org.dslul.openboard.inputmethod.latin.common.InputPointers;
@@ -98,10 +98,13 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import static org.dslul.openboard.inputmethod.latin.common.Constants.ImeOption.FORCE_ASCII;
 import static org.dslul.openboard.inputmethod.latin.common.Constants.ImeOption.NO_MICROPHONE;
 import static org.dslul.openboard.inputmethod.latin.common.Constants.ImeOption.NO_MICROPHONE_COMPAT;
+
+import androidx.annotation.NonNull;
 
 /**
  * Input method implementation for Qwerty'ish keyboard.
@@ -162,6 +165,9 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     // Working variable for {@link #startShowingInputView()} and
     // {@link #onEvaluateInputViewShown()}.
     private boolean mIsExecutingStartShowingInputView;
+
+    // Used for re-initialize keyboard layout after onConfigurationChange.
+    @Nullable private Context mDisplayContext;
 
     // Object for reacting to adding/removing a dictionary pack.
     private final BroadcastReceiver mDictionaryPackInstallReceiver =
@@ -620,10 +626,11 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         DebugFlags.init(DeviceProtectedUtils.getSharedPreferences(this));
         RichInputMethodManager.init(this);
         mRichImm = RichInputMethodManager.getInstance();
-        KeyboardSwitcher.init(this);
         AudioAndHapticFeedbackManager.init(this);
         AccessibilityUtils.init(this);
         mStatsUtilsManager.onCreate(this /* context */, mDictionaryFacilitator);
+        mDisplayContext = getDisplayContext();
+        KeyboardSwitcher.init(this);
         super.onCreate();
 
         mClipboardHistoryManager.onCreate();
@@ -816,14 +823,46 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
             }
         }
         // KeyboardSwitcher will check by itself if theme update is necessary
-        mKeyboardSwitcher.updateKeyboardTheme();
+        mKeyboardSwitcher.updateKeyboardTheme(getDisplayContext());
         super.onConfigurationChanged(conf);
+    }
+
+    @Override
+    public void onInitializeInterface() {
+        mDisplayContext = getDisplayContext();
+        mKeyboardSwitcher.updateKeyboardTheme(mDisplayContext);
+    }
+
+    /**
+     * Returns the context object whose resources are adjusted to match the metrics of the display.
+     *
+     * Note that before {@link android.os.Build.VERSION_CODES#KITKAT}, there is no way to support
+     * multi-display scenarios, so the context object will just return the IME context itself.
+     *
+     * With initiating multi-display APIs from {@link android.os.Build.VERSION_CODES#KITKAT}, the
+     * context object has to return with re-creating the display context according the metrics
+     * of the display in runtime.
+     *
+     * Starts from {@link android.os.Build.VERSION_CODES#S_V2}, the returning context object has
+     * became to IME context self since it ends up capable of updating its resources internally.
+     */
+    private @NonNull Context getDisplayContext() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S_V2) {
+            // IME context sources is now managed by WindowProviderService from Android 12L.
+            return this;
+        }
+        // An issue in Q that non-activity components Resources / DisplayMetrics in
+        // Context doesn't well updated when the IME window moving to external display.
+        // Currently we do a workaround is to create new display context directly and re-init
+        // keyboard layout with this context.
+        final WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        return createDisplayContext(wm.getDefaultDisplay());
     }
 
     @Override
     public View onCreateInputView() {
         StatsUtils.onCreateInputView();
-        return mKeyboardSwitcher.onCreateInputView(mIsHardwareAcceleratedDrawingEnabled);
+        return mKeyboardSwitcher.onCreateInputView(getDisplayContext(), mIsHardwareAcceleratedDrawingEnabled);
     }
 
     @Override
@@ -906,7 +945,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         mGestureConsumer = GestureConsumer.NULL_GESTURE_CONSUMER;
         mRichImm.refreshSubtypeCaches();
         final KeyboardSwitcher switcher = mKeyboardSwitcher;
-        switcher.updateKeyboardTheme();
+        switcher.updateKeyboardTheme(mDisplayContext);
         final MainKeyboardView mainKeyboardView = switcher.getMainKeyboardView();
         // If we are starting input in a different text field from before, we'll have to reload
         // settings, so currentSettingsValues can't be final.
@@ -2020,15 +2059,9 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     // slightly modified from Simple Keyboard: https://github.com/rkkr/simple-keyboard/blob/master/app/src/main/java/rkr/simplekeyboard/inputmethod/latin/LatinIME.java
     private void setNavigationBarColor() {
         final SettingsValues settingsValues = mSettings.getCurrent();
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || !settingsValues.mNavBarColor)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || !settingsValues.mCustomNavBarColor)
             return;
-        final int color;
-        if (settingsValues.mUserTheme) {
-            final int c = settingsValues.mBackgroundColor;
-            // slightly adjust so color is same as keyboard background
-            color = Color.rgb((int) (Color.red(c) * 0.925), (int) (Color.green(c) * 0.9379), (int) (Color.blue(c) * 0.945));
-        } else
-            color = settingsValues.mBackgroundColor;
+        final int color = settingsValues.mColors.navBar;
         final Window window = getWindow().getWindow();
         if (window == null)
             return;
@@ -2039,7 +2072,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
             return;
         final View view = window.getDecorView();
         mOriginalNavBarFlags = view.getSystemUiVisibility();
-        if (isBrightColor(color)) {
+        if (Colors.isBrightColor(color)) {
             view.setSystemUiVisibility(mOriginalNavBarFlags | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
         } else {
             view.setSystemUiVisibility(mOriginalNavBarFlags & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
@@ -2048,7 +2081,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
 
     private void clearNavigationBarColor() {
         final SettingsValues settingsValues = mSettings.getCurrent();
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || !settingsValues.mNavBarColor)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || !settingsValues.mCustomNavBarColor)
             return;
         final Window window = getWindow().getWindow();
         if (window == null) {
@@ -2062,17 +2095,4 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         view.setSystemUiVisibility(mOriginalNavBarFlags);
     }
 
-    private static boolean isBrightColor(int color) {
-        if (android.R.color.transparent == color) {
-            return true;
-        }
-        // See http://www.nbdtech.com/Blog/archive/2008/04/27/Calculating-the-Perceived-Brightness-of-a-Color.aspx
-        boolean bright = false;
-        int[] rgb = {Color.red(color), Color.green(color), Color.blue(color)};
-        int brightness = (int) Math.sqrt(rgb[0] * rgb[0] * .241 + rgb[1] * rgb[1] * .691 + rgb[2] * rgb[2] * .068);
-        if (brightness >= 210) {
-            bright = true;
-        }
-        return bright;
-    }
 }

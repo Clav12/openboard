@@ -16,11 +16,14 @@
 package org.dslul.openboard.inputmethod.latin.settings
 
 import android.app.AlertDialog
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.preference.ListPreference
 import android.preference.Preference
 import android.preference.TwoStatePreference
+import androidx.core.content.edit
+import org.dslul.openboard.inputmethod.keyboard.KeyboardSwitcher
 import org.dslul.openboard.inputmethod.keyboard.KeyboardTheme
 import org.dslul.openboard.inputmethod.latin.R
 import org.dslul.openboard.inputmethod.latin.common.Constants
@@ -30,12 +33,15 @@ import java.util.*
 /**
  * "Appearance" settings sub screen.
  */
+@Suppress("Deprecation") // yes everything here is deprecated, but only work on this if really necessary
 class AppearanceSettingsFragment : SubScreenFragment(), Preference.OnPreferenceChangeListener {
 
     private var selectedThemeId = 0
+    private var needsReload = false
 
     private lateinit var themeFamilyPref: ListPreference
     private lateinit var themeVariantPref: ListPreference
+    private lateinit var customThemeVariantPref: ListPreference
     private lateinit var keyBordersPref: TwoStatePreference
     private lateinit var amoledModePref: TwoStatePreference
     private var dayNightPref: TwoStatePreference? = null
@@ -52,6 +58,7 @@ class AppearanceSettingsFragment : SubScreenFragment(), Preference.OnPreferenceC
             removePreference(Settings.PREF_THEME_DAY_NIGHT)
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            // todo: consider removing the preference, and always set the navbar color
             removePreference(Settings.PREF_NAVBAR_COLOR)
         }
         setupTheme()
@@ -69,6 +76,14 @@ class AppearanceSettingsFragment : SubScreenFragment(), Preference.OnPreferenceC
         updateThemePreferencesState()
         CustomInputStyleSettingsFragment.updateCustomInputStylesSummary(
                 findPreference(Settings.PREF_CUSTOM_INPUT_STYLES))
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (needsReload)
+            // todo: is this the correct "displayContext? if not it may cause weird rare issues on some android versions
+            KeyboardSwitcher.getInstance().forceUpdateKeyboardTheme(activity)
+        needsReload = false
     }
 
     override fun onPreferenceChange(preference: Preference, value: Any?): Boolean {
@@ -110,6 +125,24 @@ class AppearanceSettingsFragment : SubScreenFragment(), Preference.OnPreferenceC
                 isEnabled = isLegacyFamily || !KeyboardTheme.getIsDayNight(selectedThemeId)
             }
         }
+        customThemeVariantPref.apply {
+            val variant = sharedPreferences.getString(Settings.PREF_CUSTOM_THEME_VARIANT, KeyboardTheme.THEME_LIGHT)
+            // todo: some way of following system, with setting a dark and a light theme
+            //  check whether night mode is active using context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK
+            //  this is needed so the auto-theme can be replaced
+            //  idea: add a "dark theme variant" preference when auto-switch is on
+            // todo (idea): re-work setting to actually see preview of theme colors... but that's a lot of work
+            val variants = KeyboardTheme.CUSTOM_THEME_VARIANTS
+            entries = variants.map {
+                val resId = resources.getIdentifier("theme_name_$it", "string", activity.packageName)
+                if (resId == 0) it else getString(resId)
+            }.toTypedArray()
+            entryValues = variants
+            value = variant
+            val resId = resources.getIdentifier("theme_name_$variant", "string", activity.packageName)
+            summary = if (resId == 0) variant else getString(resId)
+            isEnabled = true
+        }
         keyBordersPref.apply {
             isEnabled = !isLegacyFamily && !KeyboardTheme.getIsAmoledMode(selectedThemeId)
             isChecked = isLegacyFamily || KeyboardTheme.getHasKeyBorders(selectedThemeId)
@@ -117,15 +150,15 @@ class AppearanceSettingsFragment : SubScreenFragment(), Preference.OnPreferenceC
         amoledModePref.apply {
             isEnabled = !isLegacyFamily && variant != KeyboardTheme.THEME_VARIANT_LIGHT
                     && !KeyboardTheme.getHasKeyBorders(selectedThemeId)
-                    && !KeyboardTheme.getIsUser(selectedThemeId)
+                    && !KeyboardTheme.getIsCustom(selectedThemeId)
             isChecked = !isLegacyFamily && KeyboardTheme.getIsAmoledMode(selectedThemeId)
         }
         dayNightPref?.apply {
-            isEnabled = !isLegacyFamily
-            isChecked = !isLegacyFamily && KeyboardTheme.getIsDayNight(selectedThemeId)
+            isEnabled = !isLegacyFamily && !KeyboardTheme.getIsCustom(selectedThemeId)
+            isChecked = !isLegacyFamily && !KeyboardTheme.getIsCustom(selectedThemeId) && KeyboardTheme.getIsDayNight(selectedThemeId)
         }
         userColorsPref.apply {
-            isEnabled = KeyboardTheme.getIsUser(selectedThemeId)
+            isEnabled = KeyboardTheme.getIsCustom(selectedThemeId) && sharedPreferences.getString(Settings.PREF_CUSTOM_THEME_VARIANT, KeyboardTheme.THEME_LIGHT) == KeyboardTheme.THEME_USER
         }
     }
 
@@ -143,6 +176,7 @@ class AppearanceSettingsFragment : SubScreenFragment(), Preference.OnPreferenceC
         }
         themeVariantPref = preferenceScreen.findPreference(Settings.PREF_THEME_VARIANT) as ListPreference
         themeVariantPref.apply {
+            title = "$title old (to be removed)" // todo: remove, this is just a workaround while there are still 2 ways of selecting variant
             onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, value ->
                 summary = entries[entryValues.indexOfFirst { it == value }]
                 saveSelectedThemeId(variant = value as String)
@@ -168,6 +202,29 @@ class AppearanceSettingsFragment : SubScreenFragment(), Preference.OnPreferenceC
             updateThemePreferencesState(skipThemeFamily = true)
             true
         }
+        customThemeVariantPref = preferenceScreen.findPreference(Settings.PREF_CUSTOM_THEME_VARIANT) as ListPreference
+        customThemeVariantPref.apply {
+            title = "$title new" // todo: remove, this is just a workaround while there are still 2 ways of selecting variant
+            onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, value ->
+                // not so nice workaround, could be removed in the necessary re-work: new value seems
+                // to be stored only after this method call, but we update the summary and user-defined color enablement in here -> store it now
+                if (value == sharedPreferences.getString(Settings.PREF_CUSTOM_THEME_VARIANT, KeyboardTheme.THEME_LIGHT))
+                    return@OnPreferenceChangeListener true // avoid infinite loop
+                sharedPreferences.edit { putString(Settings.PREF_CUSTOM_THEME_VARIANT, value as String) }
+
+                summary = entries[entryValues.indexOfFirst { it == value }]
+                needsReload = true
+
+                // always switch to user-defined theme variant
+                val themeFamily = KeyboardTheme.getThemeFamily(selectedThemeId)
+                val variants = KeyboardTheme.THEME_VARIANTS[themeFamily]!!
+                val userVariant = variants.first { it.contains("user", true) }
+                saveSelectedThemeId(variant = userVariant as String)
+                updateThemePreferencesState(skipThemeFamily = true)
+
+                true
+            }
+        }
         userColorsPref = preferenceScreen.findPreference(Settings.PREF_THEME_USER)
         userColorsPref.onPreferenceClickListener = Preference.OnPreferenceClickListener { _ ->
             val items = listOf(R.string.select_color_background, R.string.select_color_key, R.string.select_color_key_hint, R.string.select_color_accent, R.string.select_color_key_background)
@@ -178,14 +235,14 @@ class AppearanceSettingsFragment : SubScreenFragment(), Preference.OnPreferenceC
                 .setPositiveButton(android.R.string.ok, null)
                 .setTitle(R.string.select_color_to_adjust)
                 .setItems(itemsArray) { _, i ->
-                    val pref = when (i) {
-                        0 -> Settings.PREF_THEME_USER_COLOR_BACKGROUND
-                        1 -> Settings.PREF_THEME_USER_COLOR_TEXT
-                        2 -> Settings.PREF_THEME_USER_COLOR_HINT_TEXT
-                        3 -> Settings.PREF_THEME_USER_COLOR_ACCENT
-                        else -> Settings.PREF_THEME_USER_COLOR_KEYS
+                    val (pref, default) = when (i) {
+                        0 -> Settings.PREF_THEME_USER_COLOR_BACKGROUND to Color.DKGRAY
+                        1 -> Settings.PREF_THEME_USER_COLOR_TEXT to Color.WHITE
+                        2 -> Settings.PREF_THEME_USER_COLOR_HINT_TEXT to Color.WHITE
+                        3 -> Settings.PREF_THEME_USER_COLOR_ACCENT to Color.BLUE
+                        else -> Settings.PREF_THEME_USER_COLOR_KEYS to Color.LTGRAY
                     }
-                    val d = ColorPickerDialog(activity, items[i], sharedPreferences, pref)
+                    val d = ColorPickerDialog(activity, items[i], sharedPreferences, pref, default) { needsReload = true}
                     d.show()
                 }
                 .show()
